@@ -1,0 +1,686 @@
+<!--
+  ============================================================
+  EDITING GUIDE — read this before making changes
+  ============================================================
+  This is a plain HTML file: no build step, no compiler.
+  Edit it directly in cPanel File Manager's built-in editor,
+  or in any text editor, then re-upload/save.
+
+  SAFE TO EDIT YOURSELF:
+    - Any visible text (search for the words you see on the
+      site — headlines, paragraphs, card copy, stats, email).
+    - Colors: see the ":root { ... }" block near the top of
+      the <style> section below. Each --name: #hexcode; line
+      is a color used sitewide — change the hex value, it
+      updates everywhere that variable is used.
+
+  ASK CLAUDE BEFORE EDITING:
+    - Anything inside the final <script> block — this is the
+      code that generates the diffraction/PDF charts from
+      data, not hand-drawn artwork.
+    - Layout/structure changes (new sections, grids, pages).
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realspace — Powder Diffraction &amp; PDF Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* SITEWIDE COLORS — change any hex value below, it updates everywhere that variable is used */
+  :root{
+    --bg: #0B0E14;
+    --bg-panel: #12161F;
+    --bg-panel-2: #171C27;
+    --amber: #F2A93C;
+    --blue: #6E93B8;
+    --rose: #C1554A;
+    --text: #E7E4DA;
+    --text-dim: #8B93A1;
+    --text-faint: #545C6B;
+    --line: rgba(231,228,218,0.10);
+    --line-strong: rgba(231,228,218,0.20);
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --wrap: 1120px;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior: auto; }
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a{ color: inherit; }
+  :focus-visible{ outline: 2px solid var(--amber); outline-offset: 3px; }
+
+  .wrap{ max-width: var(--wrap); margin: 0 auto; padding: 0 28px; }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 14px;
+  }
+
+  h1,h2,h3{ font-family: var(--font-display); font-weight: 500; margin: 0; color: var(--text); }
+
+  /* ---------- Top ticker ---------- */
+  .ticker{
+    border-bottom: 1px solid var(--line);
+    background: #08090D;
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-faint);
+    padding: 7px 0;
+  }
+  .ticker span{ padding: 0 28px; }
+  .ticker .dot{ color: var(--amber); }
+
+  /* ---------- Nav ---------- */
+  header.nav{
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(11,14,20,0.86);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 16px 28px;
+  }
+  .logo{
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    text-decoration:none;
+    color: var(--text);
+    display:flex; align-items:baseline; gap:8px;
+  }
+  .logo .mark{ color: var(--amber); }
+  .logo .sub{ color: var(--text-faint); font-weight: 400; font-size: 11px; display:none; }
+  @media (min-width: 720px){ .logo .sub{ display:inline; } }
+
+  nav.links{ display:none; gap: 28px; font-size: 14px; }
+  nav.links a{ text-decoration:none; color: var(--text-dim); transition: color .15s; }
+  nav.links a:hover{ color: var(--text); }
+  @media (min-width: 860px){ nav.links{ display:flex; } }
+
+  .btn{
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    padding: 10px 18px;
+    border-radius: 3px;
+    text-decoration: none;
+    display: inline-block;
+    border: 1px solid var(--line-strong);
+    color: var(--text);
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .btn.primary{ background: var(--amber); color: #0B0E14; border-color: var(--amber); font-weight: 600; }
+  .btn.primary:hover{ background: #ffbc57; }
+  .btn.ghost:hover{ border-color: var(--text-dim); color: #fff; }
+
+  /* ---------- Hero ---------- */
+  .hero{ position: relative; padding: 84px 0 60px; overflow: hidden; }
+  .hero-rings{ position: absolute; right: -140px; top: -140px; width: 640px; height: 640px; opacity: 0.35; pointer-events:none; }
+  @media (max-width: 720px){ .hero-rings{ right: -220px; top: -80px; width: 480px; height: 480px; } }
+
+  .hero-content{ position: relative; max-width: 640px; }
+  .hero h1{ font-size: clamp(34px, 5vw, 52px); line-height: 1.08; letter-spacing: -0.01em; }
+  .hero h1 em{ font-style: italic; color: var(--amber); }
+  .hero p.lede{ color: var(--text-dim); font-size: 17px; margin: 22px 0 32px; max-width: 560px; }
+  .hero .ctas{ display:flex; gap: 14px; flex-wrap: wrap; margin-bottom: 64px; }
+
+  .duality{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px 22px 18px;
+  }
+  .duality-grid{ display:grid; grid-template-columns: 1fr; gap: 0; }
+  .duality-row{ padding: 6px 0; }
+  .duality-row + .duality-row{ border-top: 1px dashed var(--line-strong); margin-top: 14px; padding-top: 20px; }
+  .duality-label{ display:flex; justify-content: space-between; align-items:baseline; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); margin-bottom: 6px; letter-spacing: 0.04em; }
+  .duality-label b{ color: var(--text-dim); font-weight: 500; }
+  .duality svg{ display:block; width: 100%; height: auto; }
+  .duality-caption{ text-align:center; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); margin-top: 12px; letter-spacing: 0.03em; }
+  .duality-caption b{ color: var(--amber); font-weight: 500; }
+
+  /* ---------- Sections generic ---------- */
+  section{ padding: 88px 0; border-top: 1px solid var(--line); }
+  section .head{ max-width: 620px; margin-bottom: 48px; }
+  section h2{ font-size: clamp(26px, 3.4vw, 34px); letter-spacing: -0.01em; }
+  section .head p{ color: var(--text-dim); margin-top: 14px; font-size: 15.5px; }
+
+  /* ---------- Method ---------- */
+  .stages{ display:grid; grid-template-columns: 1fr; gap: 0; }
+  .stage{ display:grid; grid-template-columns: 64px 1fr; gap: 20px; padding: 26px 0; border-top: 1px solid var(--line); }
+  .stage:first-child{ border-top: 1px solid var(--line-strong); }
+  .stage-num{ font-family: var(--font-mono); color: var(--amber); font-size: 13px; padding-top: 3px; }
+  .stage h3{ font-size: 19px; font-weight: 500; margin-bottom: 8px; font-family: var(--font-body); font-weight:600; }
+  .stage p{ color: var(--text-dim); margin: 0; font-size: 15px; max-width: 620px; }
+
+  /* ---------- Outputs ---------- */
+  .outputs{ display:grid; grid-template-columns: 1fr; gap: 24px; }
+  @media (min-width: 900px){ .outputs{ grid-template-columns: 1fr 1fr; } }
+  .output-card{ background: var(--bg-panel); border: 1px solid var(--line); border-radius: 6px; padding: 22px; }
+  .output-card h3{ font-family: var(--font-body); font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+  .output-card .sub{ color: var(--text-faint); font-size: 12.5px; font-family: var(--font-mono); margin-bottom: 16px; }
+  .output-card svg{ display:block; width:100%; height:auto; }
+  .stats{
+    margin-top: 16px; display:grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+    font-family: var(--font-mono); font-size: 12px; border-top: 1px solid var(--line); padding-top: 14px;
+  }
+  .stats div span{ display:block; color: var(--text-faint); font-size: 10.5px; margin-bottom: 3px; letter-spacing: .04em; }
+  .stats div b{ color: var(--text); font-weight: 500; font-size: 14px; }
+  .legend{ display:flex; gap:16px; flex-wrap:wrap; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-top: 10px; }
+  .legend i{ display:inline-block; width:10px; height:2px; margin-right:6px; vertical-align: middle; }
+
+  /* ---------- Applications ---------- */
+  .app-grid{ display:grid; grid-template-columns: 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow:hidden; }
+  @media (min-width: 720px){ .app-grid{ grid-template-columns: 1fr 1fr; } }
+  .app-card{ background: var(--bg-panel); padding: 28px; }
+  .app-card .tag{ font-family: var(--font-mono); font-size: 11px; color: var(--amber); letter-spacing: .05em; margin-bottom: 10px; text-transform: uppercase;}
+  .app-card h3{ font-family: var(--font-body); font-weight: 600; font-size: 17px; margin-bottom: 10px; }
+  .app-card p{ color: var(--text-dim); font-size: 14.5px; margin:0; }
+
+  /* ---------- Services ---------- */
+  .services{ display:grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 720px){ .services{ grid-template-columns: 1fr 1fr; } }
+  .service{ border: 1px solid var(--line); border-radius: 6px; padding: 24px; transition: border-color .15s; }
+  .service:hover{ border-color: var(--line-strong); }
+  .service h3{ font-family: var(--font-body); font-weight: 600; font-size: 16px; margin-bottom: 8px; display:flex; align-items:center; gap:10px;}
+  .service h3 .dot{ width:6px; height:6px; border-radius:50%; background: var(--amber); display:inline-block; }
+  .service p{ color: var(--text-dim); font-size: 14.5px; margin: 0; }
+
+  /* ---------- Contact ---------- */
+  .contact-grid{ display:grid; grid-template-columns: 1fr; gap: 40px; }
+  @media (min-width: 900px){ .contact-grid{ grid-template-columns: 0.9fr 1.1fr; } }
+  .contact-info p{ color: var(--text-dim); font-size: 15px; }
+  .contact-info .email{ font-family: var(--font-mono); color: var(--amber); text-decoration:none; font-size: 15px; }
+  .contact-info .email:hover{ text-decoration: underline; }
+  form{ display:grid; gap: 16px; }
+  .field{ display:grid; gap: 6px; }
+  label{ font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); letter-spacing: .04em; text-transform: uppercase; }
+  input, textarea{
+    background: var(--bg-panel);
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    padding: 11px 12px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14.5px;
+  }
+  input:focus, textarea:focus{ border-color: var(--amber); }
+  textarea{ resize: vertical; min-height: 110px; }
+  .form-note{ font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); margin-top: -4px; }
+
+  /* ---------- Footer ---------- */
+  footer{ border-top: 1px solid var(--line); padding: 32px 0; }
+  .foot-inner{ display:flex; justify-content: space-between; align-items:center; flex-wrap: wrap; gap: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--text-faint); }
+
+  /* ---------- Reveal on scroll ---------- */
+  .reveal{ opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in{ opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="ticker" aria-hidden="true">
+  <span><span class="dot">●</span> currently analyzing: Ni-rich NMC cathode local order</span>
+  <span><span class="dot">●</span> zeolite framework PDF fit, r = 1.5–20 Å</span>
+  <span><span class="dot">●</span> API polymorph screen, 14 samples</span>
+  <span><span class="dot">●</span> synchrotron beamtime prep, total scattering geometry</span>
+  <span><span class="dot">●</span> currently analyzing: Ni-rich NMC cathode local order</span>
+  <span><span class="dot">●</span> zeolite framework PDF fit, r = 1.5–20 Å</span>
+</div>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#top">
+      <span class="mark">rs()</span> REALSPACE <span class="sub">// powder &amp; PDF analysis</span>
+    </a>
+    <nav class="links">
+      <a href="#method">Method</a>
+      <a href="#output">Output</a>
+      <a href="#applications">Applications</a>
+      <a href="#services">Services</a>
+    </nav>
+    <a class="btn primary" href="#contact">Start a project</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" style="border-top:none; padding-top: 84px;">
+    <svg class="hero-rings" id="heroRings" viewBox="0 0 640 640" aria-hidden="true"></svg>
+    <div class="wrap">
+      <div class="hero-content">
+        <p class="eyebrow">X-RAY &amp; NEUTRON TOTAL SCATTERING — INDEPENDENT ANALYSIS</p>
+        <h1>From powder pattern<br>to <em>atomic structure.</em></h1>
+        <p class="lede">We turn raw diffraction counts into refined structures and real-space pair distribution functions — Rietveld refinement, PDF modeling, and the judgment calls in between — for teams who need it done right and explained clearly.</p>
+        <div class="ctas">
+          <a class="btn primary" href="#contact">Start a project</a>
+          <a class="btn ghost" href="#output">See sample output ↓</a>
+        </div>
+      </div>
+
+      <div class="duality reveal">
+        <div class="duality-grid">
+          <div class="duality-row">
+            <div class="duality-label"><b>Reciprocal space</b><span>I(2θ) — average, long-range structure</span></div>
+            <svg id="heroProfile" viewBox="0 0 900 170" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+          <div class="duality-row">
+            <div class="duality-label"><b>Real space</b><span>G(r) — local &amp; medium-range structure</span></div>
+            <svg id="heroGr" viewBox="0 0 900 170" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+        </div>
+        <p class="duality-caption">Same measurement, <b>two structural views</b> — one Bragg, one total scattering.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="method">
+    <div class="wrap">
+      <div class="head reveal">
+        <p class="eyebrow">How we work</p>
+        <h2>Method</h2>
+        <p>A standard pipeline from raw detector output to a structural answer you can defend — adapted to your instrument, your source, and your question.</p>
+      </div>
+      <div class="stages reveal">
+        <div class="stage">
+          <div class="stage-num">01</div>
+          <div><h3>Data reduction</h3><p>2D detector frames or single-channel scans, calibrated, masked, and integrated to 1D intensity profiles or total scattering structure functions S(Q). Lab, synchrotron, and time-of-flight neutron sources.</p></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">02</div>
+          <div><h3>Structural refinement</h3><p>Rietveld and Le Bail refinement against your model — phase fractions, lattice parameters, atomic positions, thermal parameters, preferred orientation, microstrain and crystallite size.</p></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">03</div>
+          <div><h3>Total scattering / PDF</h3><p>Where average-structure models fall short — nanoparticles, disordered frameworks, local distortions — we extract G(r) and fit real-space structural models over a chosen r-range.</p></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">04</div>
+          <div><h3>Reporting</h3><p>Fits, uncertainties, and a written interpretation your team — and your reviewers — can act on. Refinement files and scripts included, not just a PDF report.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="output">
+    <div class="wrap">
+      <div class="head reveal">
+        <p class="eyebrow">Sample output</p>
+        <h2>What comes back</h2>
+        <p>Illustrative examples, not live data. Every project ships with the fit, the residual, and the numbers behind it.</p>
+      </div>
+      <div class="outputs reveal">
+        <div class="output-card">
+          <h3>Rietveld refinement</h3>
+          <div class="sub">Observed vs. calculated, with difference curve and reflection markers</div>
+          <svg id="rietveldChart" viewBox="0 0 620 300" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="legend">
+            <span><i style="background:var(--blue)"></i>Observed</span>
+            <span><i style="background:var(--amber)"></i>Calculated</span>
+            <span><i style="background:var(--rose)"></i>Difference</span>
+            <span><i style="background:var(--text-faint)"></i>Reflections</span>
+          </div>
+          <div class="stats">
+            <div><span>Rwp</span><b>4.82%</b></div>
+            <div><span>Rp</span><b>3.71%</b></div>
+            <div><span>χ²</span><b>1.24</b></div>
+          </div>
+        </div>
+        <div class="output-card">
+          <h3>Pair distribution function</h3>
+          <div class="sub">G(r), fitted over 1.5–20 Å with labeled coordination shells</div>
+          <svg id="gChart" viewBox="0 0 620 300" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="legend">
+            <span><i style="background:var(--blue)"></i>Experimental G(r)</span>
+            <span><i style="background:var(--amber)"></i>Model fit</span>
+          </div>
+          <div class="stats">
+            <div><span>Fit range</span><b>1.5–20 Å</b></div>
+            <div><span>Rw</span><b>11.3%</b></div>
+            <div><span>1st shell</span><b>1.98 Å</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="applications">
+    <div class="wrap">
+      <div class="head reveal">
+        <p class="eyebrow">Where this matters</p>
+        <h2>Applications</h2>
+        <p>Scattering analysis is generic; the interpretation isn't. A sample of the problems we're usually called in for.</p>
+      </div>
+      <div class="app-grid reveal">
+        <div class="app-card">
+          <div class="tag">Batteries</div>
+          <h3>Cathode &amp; anode electrodes</h3>
+          <p>Cathode and anode materials often look ordered on average and disordered locally. PDF resolves cation mixing, Jahn–Teller distortion, and short-range order that Bragg peaks alone miss.</p>
+        </div>
+        <div class="app-card">
+          <div class="tag">Pharma</div>
+          <h3>Solid-form characterization</h3>
+          <p>Polymorph identification, amorphous content quantification, and crystallinity tracking through formulation, processing, and stability studies.</p>
+        </div>
+        <div class="app-card">
+          <div class="tag">Catalysis</div>
+          <h3>Nanoparticles &amp; supported catalysts</h3>
+          <p>Sub-10 nm particles give broadened, weak Bragg patterns. Total scattering recovers coordination environments and particle-scale structure conventional refinement can't reach.</p>
+        </div>
+        <div class="app-card">
+          <div class="tag">Materials</div>
+          <h3>Glasses &amp; amorphous solids</h3>
+          <p>No Bragg peaks at all. PDF is often the only quantitative route to short- and medium-range order in disordered materials.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="services">
+    <div class="wrap">
+      <div class="head reveal">
+        <p class="eyebrow">Engagement</p>
+        <h2>Ways to work together</h2>
+        <p>Scoped to how much of the analysis you want to hand off.</p>
+      </div>
+      <div class="services reveal">
+        <div class="service">
+          <h3><span class="dot"></span>Single analysis</h3>
+          <p>Send data, get a refined structure or PDF fit with a written report. Typical turnaround 1–2 weeks.</p>
+        </div>
+        <div class="service">
+          <h3><span class="dot"></span>Beamtime support</h3>
+          <p>Experiment planning before your beamtime, on-call support during, full processing after.</p>
+        </div>
+        <div class="service">
+          <h3><span class="dot"></span>Ongoing / retainer</h3>
+          <p>Embedded support for a lab or R&amp;D team running scattering experiments on a regular cadence.</p>
+        </div>
+        <div class="service">
+          <h3><span class="dot"></span>Custom tooling</h3>
+          <p>Scripts and pipelines for repeatable in-house analysis, built around your instruments and data formats.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <div class="contact-grid reveal">
+        <div class="contact-info">
+          <p class="eyebrow">Get in touch</p>
+          <h2>Tell us about your data</h2>
+          <p>Describe your material, your instrument, and what you're trying to learn. We'll follow up with next steps — and a secure way to share data, since nothing needs to go through a form field.</p>
+          <p>Prefer email directly?<br><a class="email" href="mailto:hello@realspace-analytics.com">hello@realspace-analytics.com</a></p>
+        </div>
+        <form id="contactForm">
+          <div class="field">
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" required>
+          </div>
+          <div class="field">
+            <label for="org">Organization</label>
+            <input id="org" name="org" type="text">
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required>
+          </div>
+          <div class="field">
+            <label for="message">What are you working on?</label>
+            <textarea id="message" name="message" required placeholder="Material system, instrument/source, what you need out of the analysis..."></textarea>
+          </div>
+          <p class="form-note">Opens your email client with this pre-filled — nothing is stored or sent from this page.</p>
+          <button class="btn primary" type="submit" style="justify-self:start;">Send</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span>REALSPACE — independent powder diffraction &amp; PDF analysis</span>
+    <span>© 2026</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const NS = "http://www.w3.org/2000/svg";
+  function el(name, attrs){
+    const e = document.createElementNS(NS, name);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function mulberry32(seed){
+    return function(){
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const rng = mulberry32(42);
+
+  function gaussian(x, x0, s){ return Math.exp(-((x-x0)*(x-x0))/(2*s*s)); }
+
+  // ---------- Reciprocal-space profile generator ----------
+  const profilePeaks = [
+    {x:12.4,i:0.35,w:0.16},{x:17.6,i:0.92,w:0.14},{x:21.8,i:1.0,w:0.15},
+    {x:25.3,i:0.55,w:0.14},{x:28.9,i:0.78,w:0.16},{x:31.4,i:0.32,w:0.14},
+    {x:35.0,i:0.44,w:0.17},{x:38.2,i:0.24,w:0.15},{x:41.6,i:0.19,w:0.16},
+    {x:44.9,i:0.30,w:0.17},{x:48.1,i:0.16,w:0.16},{x:53.6,i:0.13,w:0.18},
+    {x:58.0,i:0.11,w:0.19}
+  ];
+  function profileY(x){
+    let y = 0.04;
+    for (const p of profilePeaks) y += p.i * gaussian(x, p.x, p.w);
+    return y;
+  }
+
+  // ---------- Real-space G(r) generator ----------
+  const rPeaks = [
+    {r:1.98,a:0.95,s:0.055},{r:2.45,a:0.42,s:0.06},{r:2.83,a:0.8,s:0.07},
+    {r:3.46,a:0.28,s:0.08},{r:3.99,a:0.58,s:0.09},{r:4.62,a:0.22,s:0.10},
+    {r:4.90,a:0.4,s:0.10},{r:5.63,a:0.18,s:0.11}
+  ];
+  function grY(r){
+    const envelope = Math.exp(-(r-1.0)/9.5);
+    let y = 0;
+    for (const p of rPeaks){
+      y += p.a * envelope * gaussian(r, p.r, p.s);
+      y -= 0.32 * p.a * envelope * gaussian(r, p.r + 0.42, p.s*1.3);
+    }
+    y += 0.02 * Math.sin(r*5.5) * envelope;
+    return y;
+  }
+
+  function buildSeries(fn, xmin, xmax, n, noiseAmp, seedOffset){
+    const localRng = mulberry32(1000 + seedOffset);
+    const pts = [];
+    for (let k=0;k<=n;k++){
+      const x = xmin + (xmax-xmin)*k/n;
+      let y = fn(x);
+      if (noiseAmp) y += (localRng()-0.5)*noiseAmp;
+      pts.push([x,y]);
+    }
+    return pts;
+  }
+
+  function toPixels(pts, xmin, xmax, ymin, ymax, W, H, padL, padR, padT, padB){
+    return pts.map(([x,y])=>{
+      const px = padL + (x-xmin)/(xmax-xmin) * (W-padL-padR);
+      const py = H - padB - (y-ymin)/(ymax-ymin) * (H-padT-padB);
+      return [px,py];
+    });
+  }
+  function pointsAttr(pxPts){ return pxPts.map(p=>p[0].toFixed(2)+","+p[1].toFixed(2)).join(" "); }
+
+  // ---------- Hero rings (decorative watermark) ----------
+  (function(){
+    const svg = document.getElementById('heroRings');
+    const cx=320, cy=320;
+    svg.appendChild(el('circle',{cx,cy,r:26,fill:'#000',opacity:'0.5'}));
+    profilePeaks.forEach((p,idx)=>{
+      const radius = 40 + idx*22 + p.i*10;
+      const c = el('circle',{
+        cx, cy, r: radius, fill:'none',
+        stroke: idx%3===0 ? 'var(--amber)' : 'var(--blue)',
+        'stroke-width': (0.6 + p.i*1.8).toFixed(2),
+        opacity: (0.15 + p.i*0.35).toFixed(2),
+        'stroke-dasharray': `${(1+rng()*3).toFixed(1)} ${(1.5+rng()*4).toFixed(1)}`,
+        'stroke-dashoffset': (rng()*40).toFixed(1)
+      });
+      svg.appendChild(c);
+    });
+  })();
+
+  // ---------- Hero duality charts (simple, no axes) ----------
+  function renderSimple(svgId, series, xmin, xmax, ymin, ymax, color){
+    const svg = document.getElementById(svgId);
+    const W=900,H=170,padL=8,padR=8,padT=14,padB=14;
+    const px = toPixels(series, xmin, xmax, ymin, ymax, W,H,padL,padR,padT,padB);
+    svg.appendChild(el('line',{x1:padL,y1:H-padB,x2:W-padR,y2:H-padB,stroke:'var(--line)','stroke-width':1}));
+    svg.appendChild(el('polyline',{points:pointsAttr(px),fill:'none',stroke:color,'stroke-width':1.6,'stroke-linejoin':'round'}));
+  }
+  renderSimple('heroProfile', buildSeries(profileY,10,62,420,0.006,1), 10,62,0,1.05,'var(--amber)');
+  renderSimple('heroGr', buildSeries(grY,1.0,7.0,420,0.004,2), 1.0,7.0,-0.5,1.0,'var(--blue)');
+
+  // ---------- Output card: Rietveld ----------
+  (function(){
+    const svg = document.getElementById('rietveldChart');
+    const W=620,H=300,padL=10,padR=10,padT=16,padB=30;
+    const xmin=10,xmax=62,ymin=-0.30,ymax=1.08;
+
+    const calc = buildSeries(profileY,xmin,xmax,500,0,10);
+    const calcPx = toPixels(calc,xmin,xmax,ymin,ymax,W,H,padL,padR,padT,padB);
+
+    // baseline
+    svg.appendChild(el('line',{x1:padL,y1:H-padB,x2:W-padR,y2:H-padB,stroke:'var(--line)','stroke-width':1}));
+
+    // reflection tick marks
+    profilePeaks.forEach(p=>{
+      const px = padL + (p.x-xmin)/(xmax-xmin)*(W-padL-padR);
+      const yBase = H - padB + 8;
+      svg.appendChild(el('line',{x1:px,y1:yBase,x2:px,y2:yBase+7,stroke:'var(--text-faint)','stroke-width':1.4}));
+    });
+
+    // difference curve (offset below)
+    const diffOffset = -0.16;
+    const diffRng = mulberry32(77);
+    const diffPts = calc.map(([x,y])=>{
+      const noise = (diffRng()-0.5)*0.03;
+      return [x, diffOffset + noise];
+    });
+    const diffPx = toPixels(diffPts,xmin,xmax,ymin,ymax,W,H,padL,padR,padT,padB);
+    svg.appendChild(el('polyline',{points:pointsAttr(diffPx),fill:'none',stroke:'var(--rose)','stroke-width':1,opacity:'0.85'}));
+
+    // calculated line
+    svg.appendChild(el('polyline',{points:pointsAttr(calcPx),fill:'none',stroke:'var(--amber)','stroke-width':1.8}));
+
+    // observed points (sparser, jittered)
+    const obsRng = mulberry32(21);
+    for (let k=0;k<=110;k++){
+      const x = xmin + (xmax-xmin)*k/110;
+      const y = profileY(x) + (obsRng()-0.5)*0.035;
+      const px = padL + (x-xmin)/(xmax-xmin)*(W-padL-padR);
+      const py = H - padB - (y-ymin)/(ymax-ymin)*(H-padT-padB);
+      svg.appendChild(el('circle',{cx:px.toFixed(2),cy:py.toFixed(2),r:1.6,fill:'var(--blue)',opacity:'0.8'}));
+    }
+
+    // axis labels
+    const lbl1 = el('text',{x:padL,y:H-8,'font-family':'JetBrains Mono, monospace','font-size':'10','fill':'var(--text-faint)'});
+    lbl1.textContent = '2θ (°) →'; svg.appendChild(lbl1);
+  })();
+
+  // ---------- Output card: G(r) with shell labels ----------
+  (function(){
+    const svg = document.getElementById('gChart');
+    const W=620,H=300,padL=14,padR=14,padT=20,padB=34;
+    const xmin=1.0,xmax=8.0,ymin=-0.5,ymax=1.05;
+
+    const exp = buildSeries(grY,xmin,xmax,480,0.018,33);
+    const expPx = toPixels(exp,xmin,xmax,ymin,ymax,W,H,padL,padR,padT,padB);
+    const model = buildSeries(grY,xmin,xmax,480,0,44);
+    const modelPx = toPixels(model,xmin,xmax,ymin,ymax,W,H,padL,padR,padT,padB);
+
+    // zero line
+    const zeroPy = H - padB - (0-ymin)/(ymax-ymin)*(H-padT-padB);
+    svg.appendChild(el('line',{x1:padL,y1:zeroPy,x2:W-padR,y2:zeroPy,stroke:'var(--line)','stroke-width':1}));
+
+    svg.appendChild(el('polyline',{points:pointsAttr(expPx),fill:'none',stroke:'var(--blue)','stroke-width':1.3,opacity:'0.75'}));
+    svg.appendChild(el('polyline',{points:pointsAttr(modelPx),fill:'none',stroke:'var(--amber)','stroke-width':1.8}));
+
+    // shell labels on first three peaks
+    const labeled = [
+      {r:1.98, txt:'1.98 Å'},
+      {r:2.83, txt:'2.83 Å'},
+      {r:3.99, txt:'3.99 Å'}
+    ];
+    labeled.forEach(item=>{
+      const px = padL + (item.r-xmin)/(xmax-xmin)*(W-padL-padR);
+      const y = grY(item.r);
+      const py = H - padB - (y-ymin)/(ymax-ymin)*(H-padT-padB);
+      svg.appendChild(el('line',{x1:px,y1:py-4,x2:px,y2:padT-4,stroke:'var(--line-strong)','stroke-width':1,'stroke-dasharray':'2 3'}));
+      const t = el('text',{x:px,y:padT-8,'text-anchor':'middle','font-family':'JetBrains Mono, monospace','font-size':'10','fill':'var(--text-dim)'});
+      t.textContent = item.txt;
+      svg.appendChild(t);
+    });
+
+    const lbl = el('text',{x:padL,y:H-10,'font-family':'JetBrains Mono, monospace','font-size':'10','fill':'var(--text-faint)'});
+    lbl.textContent = 'r (Å) →'; svg.appendChild(lbl);
+  })();
+
+  // ---------- Scroll reveal ----------
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold: 0.12});
+  document.querySelectorAll('.reveal').forEach(elm=>io.observe(elm));
+
+  // ---------- Contact form -> mailto ----------
+  const form = document.getElementById('contactForm');
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const name = document.getElementById('name').value;
+    const org = document.getElementById('org').value;
+    const email = document.getElementById('email').value;
+    const message = document.getElementById('message').value;
+    const subject = encodeURIComponent('New project inquiry — ' + name);
+    const body = encodeURIComponent(
+      `Name: ${name}\nOrganization: ${org}\nEmail: ${email}\n\n${message}`
+    );
+    window.location.href = `mailto:hello@realspace-analytics.com?subject=${subject}&body=${body}`;
+  });
+})();
+</script>
+</body>
+</html>
